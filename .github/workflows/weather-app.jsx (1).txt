@@ -1,0 +1,308 @@
+import React, { useState, useEffect } from 'react';
+import { Cloud, CloudRain, Sun, Wind, Droplets, Eye, Gauge } from 'lucide-react';
+
+const WeatherApp = () => {
+  const [selectedCity, setSelectedCity] = useState('London');
+  const [searchInput, setSearchInput] = useState('');
+  const [weatherData, setWeatherData] = useState(null);
+  const [forecast, setForecast] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const cities = [
+    'London', 'New York', 'Tokyo', 'Paris', 'Sydney',
+    'Dubai', 'Singapore', 'Toronto', 'Berlin', 'Mumbai'
+  ];
+
+  // Mock weather data generator (replaces API for demo)
+  const generateMockWeather = (cityName) => {
+    const weatherConditions = [
+      { condition: 'Sunny', icon: 'sun', temp: 28 },
+      { condition: 'Cloudy', icon: 'cloud', temp: 18 },
+      { condition: 'Rainy', icon: 'rain', temp: 15 },
+      { condition: 'Partly Cloudy', icon: 'partly-cloud', temp: 22 }
+    ];
+    
+    const randomWeather = weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
+    const tempVariation = Math.floor(Math.random() * 10) - 5;
+    const temp = randomWeather.temp + tempVariation;
+
+    return {
+      city: cityName,
+      country: 'Country',
+      temperature: temp,
+      feelsLike: temp - 2,
+      humidity: Math.floor(Math.random() * 40) + 40,
+      windSpeed: Math.floor(Math.random() * 20) + 5,
+      visibility: (Math.floor(Math.random() * 5) + 5).toFixed(1),
+      pressure: Math.floor(Math.random() * 20) + 1010,
+      condition: randomWeather.condition,
+      icon: randomWeather.icon,
+      description: randomWeather.condition.toLowerCase()
+    };
+  };
+
+  const generateMockForecast = () => {
+    const days = ['Tomorrow', 'Day 3', 'Day 4'];
+    return days.map((day, index) => ({
+      day,
+      high: Math.floor(Math.random() * 15) + 20,
+      low: Math.floor(Math.random() * 10) + 10,
+      condition: ['Sunny', 'Cloudy', 'Rainy'][index % 3],
+      icon: ['sun', 'cloud', 'rain'][index % 3]
+    }));
+  };
+
+  const fetchWeather = async (city) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Simulated API call with delay
+      await new Promise(resolve => setTimeout(resolve, 600));
+      const data = generateMockWeather(city);
+      setWeatherData(data);
+      setForecast(generateMockForecast());
+    } catch (err) {
+      setError('Failed to fetch weather data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchWeather(selectedCity);
+  }, [selectedCity]);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      setSelectedCity(searchInput.trim());
+      setSearchInput('');
+    }
+  };
+
+  const getBackgroundStyle = () => {
+    if (!weatherData) return {};
+    
+    const conditions = {
+      'Sunny': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      'Cloudy': 'linear-gradient(135deg, #4a5568 0%, #2d3748 100%)',
+      'Rainy': 'linear-gradient(135deg, #1a202c 0%, #2d3748 100%)',
+      'Partly Cloudy': 'linear-gradient(135deg, #667eea 0%, #4a5568 100%)'
+    };
+    
+    return { background: conditions[weatherData.condition] || conditions['Cloudy'] };
+  };
+
+  const getWeatherIcon = (condition) => {
+    const iconProps = { size: 80, className: 'text-white drop-shadow-lg' };
+    switch(condition) {
+      case 'sun': return <Sun {...iconProps} />;
+      case 'cloud': return <Cloud {...iconProps} />;
+      case 'rain': return <CloudRain {...iconProps} />;
+      case 'partly-cloud': return <Cloud {...iconProps} />;
+      default: return <Sun {...iconProps} />;
+    }
+  };
+
+  const getForecastIcon = (condition) => {
+    const iconProps = { size: 32, className: 'text-white' };
+    switch(condition) {
+      case 'sun': return <Sun {...iconProps} />;
+      case 'cloud': return <Cloud {...iconProps} />;
+      case 'rain': return <CloudRain {...iconProps} />;
+      default: return <Sun {...iconProps} />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen transition-all duration-700" style={getBackgroundStyle()}>
+      {/* Animated background overlay */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-white opacity-10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-white opacity-10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 animate-pulse" style={{animationDelay: '1s'}}></div>
+      </div>
+
+      <div className="relative z-10 min-h-screen flex flex-col">
+        {/* Header */}
+        <header className="backdrop-blur-md bg-white/10 border-b border-white/20 py-6 px-4">
+          <div className="max-w-6xl mx-auto">
+            <h1 className="text-4xl font-bold text-white mb-6 tracking-tight">Weather</h1>
+            
+            {/* Search and Selection */}
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Search Input */}
+              <form onSubmit={handleSearch} className="flex-1">
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Search for a city..."
+                  className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/60 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition backdrop-blur-sm"
+                />
+              </form>
+
+              {/* City Dropdown */}
+              <select
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                className="px-4 py-3 rounded-lg bg-white/20 text-white border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition cursor-pointer backdrop-blur-sm md:w-48"
+              >
+                {cities.map(city => (
+                  <option key={city} value={city} className="bg-gray-900 text-white">
+                    {city}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-12">
+          {error && (
+            <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 text-white mb-6 backdrop-blur-sm">
+              {error}
+            </div>
+          )}
+
+          {loading && (
+            <div className="flex justify-center items-center h-96">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-white/30 border-t-white"></div>
+            </div>
+          )}
+
+          {weatherData && !loading && (
+            <div className="space-y-8 animate-fade-in">
+              {/* Current Weather Card */}
+              <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 md:p-12 border border-white/20 shadow-2xl">
+                <div className="grid md:grid-cols-2 gap-8 items-center">
+                  {/* Left: Temperature & Condition */}
+                  <div className="flex flex-col items-center md:items-start">
+                    <h2 className="text-white/80 text-lg mb-2">{weatherData.city}</h2>
+                    <div className="flex items-start gap-4">
+                      <div>
+                        <div className="text-7xl font-bold text-white tracking-tighter mb-2">
+                          {Math.round(weatherData.temperature)}°
+                        </div>
+                        <p className="text-white/70 text-lg capitalize">{weatherData.condition}</p>
+                        <p className="text-white/50 text-sm mt-2">Feels like {Math.round(weatherData.feelsLike)}°C</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Weather Icon */}
+                  <div className="flex justify-center md:justify-end">
+                    <div className="transform hover:scale-110 transition-transform duration-300">
+                      {getWeatherIcon(weatherData.icon)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Temperature in F */}
+                <div className="mt-8 p-4 bg-white/10 rounded-lg border border-white/20">
+                  <p className="text-white/60 text-sm">Temperature in Fahrenheit</p>
+                  <p className="text-3xl font-bold text-white">
+                    {Math.round((weatherData.temperature * 9/5) + 32)}°F
+                  </p>
+                </div>
+              </div>
+
+              {/* Weather Details Grid */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { icon: Droplets, label: 'Humidity', value: `${weatherData.humidity}%` },
+                  { icon: Wind, label: 'Wind Speed', value: `${weatherData.windSpeed} km/h` },
+                  { icon: Eye, label: 'Visibility', value: `${weatherData.visibility} km` },
+                  { icon: Gauge, label: 'Pressure', value: `${weatherData.pressure} mb` }
+                ].map((detail, idx) => (
+                  <div key={idx} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/15 transition">
+                    <detail.icon size={24} className="text-white/70 mb-2" />
+                    <p className="text-white/60 text-sm mb-1">{detail.label}</p>
+                    <p className="text-white text-xl font-semibold">{detail.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* 3-Day Forecast */}
+              {forecast && (
+                <div>
+                  <h3 className="text-white text-xl font-semibold mb-4">3-Day Forecast</h3>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {forecast.map((day, idx) => (
+                      <div key={idx} className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/15 transition text-center">
+                        <p className="text-white/70 font-medium mb-4">{day.day}</p>
+                        <div className="flex justify-center mb-4">
+                          {getForecastIcon(day.icon)}
+                        </div>
+                        <p className="text-white/80 text-sm mb-3 capitalize">{day.condition}</p>
+                        <div className="flex justify-center gap-4">
+                          <div>
+                            <p className="text-white/50 text-xs">High</p>
+                            <p className="text-white font-semibold">{day.high}°C</p>
+                          </div>
+                          <div>
+                            <p className="text-white/50 text-xs">Low</p>
+                            <p className="text-white font-semibold">{day.low}°C</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </main>
+
+        {/* Footer */}
+        <footer className="backdrop-blur-md bg-white/10 border-t border-white/20 py-6 px-4 text-center text-white/60 text-sm mt-auto">
+          <p>Weather data is simulated for demo purposes. For production, integrate with OpenWeatherMap API.</p>
+        </footer>
+      </div>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        * {
+          font-family: 'Inter', sans-serif;
+        }
+
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fade-in {
+          animation: fade-in 0.6s ease-out;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.3);
+          border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.5);
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default WeatherApp;
